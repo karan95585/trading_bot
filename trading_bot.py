@@ -428,9 +428,10 @@ def run_live_trading():
         if sleep_seconds > 0:
             time.sleep(sleep_seconds)
 
-
+def start():
+    run_live_trading()
 # -------------------------------
 # Run Live Trading
 # -------------------------------
 if __name__ == "__main__":
-    run_live_trading()
+    start()
