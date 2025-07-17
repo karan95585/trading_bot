@@ -6,6 +6,21 @@ from datetime import datetime, timedelta, time as dt_time
 import pytz
 import requests
 
+LOG_FILE = "/data/trade_log.csv"
+
+# If the file doesn’t exist yet, create it with headers
+if not os.path.isfile(LOG_FILE):
+    with open(LOG_FILE, mode="w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow([
+            "timestamp",
+            "symbol",
+            "action",
+            "quantity",
+            "price",
+            "profit",
+            "positive_trading"
+        ])
 
 # -------------------------------
 # Configuration
@@ -156,6 +171,17 @@ def execute_trade(portfolio, action, symbol, price, quantity, timestamp, positiv
                 reason = "Stop Loss"
 
             print(f"{timestamp} - SELL {quantity} shares of {symbol} @ ₹{price:.2f} | Profit: ₹{profit:.2f} | {reason}")
+            with open(LOG_FILE, mode="a", newline="") as f:
+                writer = csv.writer(f)
+                writer.writerow([
+                    timestamp.isoformat(),
+                    symbol,
+                    action,
+                    quantity,
+                    f"{price:.2f}",
+                    f"{profit:.2f}",
+                    positive_trading
+                ])
 
     elif positive_trading == False:
         if action == "SELL":
