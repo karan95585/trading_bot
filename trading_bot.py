@@ -216,7 +216,10 @@ def square_off_positions(portfolio, symbol_data):
             execute_trade(portfolio, "SELL", symbol, price, portfolio["holdings"][symbol], now)
 
 def sector_data_fetching():
-    """Fetch sector performance data from API and map keywords to datasets"""
+    """Fetch sector data, determine dominant side, and populate symbols list."""
+    global positive_trading, symbols
+    symbols = []  # reset symbols list each time
+
     try:
         response = requests.get(
             "https://intradayscreener.com/api/indices/sectorData/1",
@@ -224,48 +227,50 @@ def sector_data_fetching():
         )
         if response.status_code == 200:
             data = response.json()
-            # Create dictionary mapping keywords to datasets
-            maped_data= dict(zip(data['keywords'], data['datasets']))
-            first_key = next(iter(maped_data))
-            first_value = maped_data[first_key]
+            datasets = data["datasets"]
+            keywords = data["keywords"]
 
-            last_key = next(reversed(maped_data))
-            last_value = maped_data[last_key]
-            global positive_trading
-            if(first_value>= abs(last_value)):
-                positive_trading=True
-                response1 = requests.get(
-                    url=f"https://intradayscreener.com/api/indices/index-constituents/{first_key}/1?filter=cash",
-                timeout=10
-                )
-                data1=response1.json()
-                first_4_stocks = data1["indexConstituents"][:4]
-                print(first_4_stocks)
-                for stock in first_4_stocks:
-                    symbol_name = stock["symbol"] + ".NS"  # append .NS for NSE if using yfinance
-                    symbols.append(symbol_name)
+            # Count positives and negatives
+            positive_count = sum(1 for val in datasets if val > 0)
+            negative_count = sum(1 for val in datasets if val < 0)
+
+            print(f"Positive count: {positive_count}, Negative count: {negative_count}")
+
+            # Decide dominant side and prepare sectors list
+            if positive_count >= negative_count:
+                positive_trading = True
+                selected_sectors = [keywords[i] for i, val in enumerate(datasets) if val > 0]
             else:
                 positive_trading = False
-                response2 = requests.get(
-                    url=f"https://intradayscreener.com/api/indices/index-constituents/{last_key}/1?filter=fno",
-                    timeout=10
-                )
-                data2=response2.json()
-                last_4_stocks = data2["indexConstituents"][-4:]
-                print(last_4_stocks)
-                for stock in last_4_stocks:
-                    symbol_name = stock["symbol"] + ".NS"
-                    symbols.append(symbol_name)
+                selected_sectors = [keywords[i] for i, val in enumerate(datasets) if val < 0]
 
+            print(f"Selected sectors: {selected_sectors} | Trading: {'Positive' if positive_trading else 'Negative'}")
 
-
+            # Fetch stocks from each sector
+            for sector in selected_sectors:
+                try:
+                    # filter_type = "cash" if positive_trading else "fno"
+                    url = f"https://intradayscreener.com/api/indices/index-constituents/{sector}/1?filter=cash"
+                    response2 = requests.get(url, timeout=10)
+                    if response2.status_code == 200:
+                        data2 = response2.json()
+                        index_constituents = data2.get("indexConstituents", [])
+                        # Add first or last 4 based on positive or negative
+                        selected_stocks = index_constituents[:4] if positive_trading else index_constituents[-4:]
+                        print(f"{sector}: Adding stocks {[s['symbol'] for s in selected_stocks]}")
+                        for stock in selected_stocks:
+                            symbol_name = stock["symbol"] + ".NS"
+                            symbols.append(symbol_name)
+                    else:
+                        print(f"⚠️ API error fetching constituents for {sector}: {response2.status_code}")
+                except Exception as e:
+                    print(f"⚠️ Exception fetching constituents for {sector}: {e}")
 
         else:
             print(f"⚠️ Sector API Error: {response.status_code}")
-            return None
+
     except Exception as e:
         print(f"⚠️ Sector API Exception: {e}")
-        return None
 
 # -------------------------------
 # Main Trading Loop
