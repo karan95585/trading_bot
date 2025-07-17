@@ -4,7 +4,7 @@ import os
 import threading
 
 # import the start() from your trading module
-from live_trading import start as start_trader
+from trading_bot import start as start_trader
 
 app = Flask(__name__)
 
