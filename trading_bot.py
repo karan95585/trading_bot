@@ -6,21 +6,7 @@ from datetime import datetime, timedelta, time as dt_time
 import pytz
 import requests
 
-LOG_FILE = "/data/trade_log.csv"
 
-# If the file doesn’t exist yet, create it with headers
-if not os.path.isfile(LOG_FILE):
-    with open(LOG_FILE, mode="w", newline="") as f:
-        writer = csv.writer(f)
-        writer.writerow([
-            "timestamp",
-            "symbol",
-            "action",
-            "quantity",
-            "price",
-            "profit",
-            "positive_trading"
-        ])
 
 # -------------------------------
 # Configuration
