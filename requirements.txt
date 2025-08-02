@@ -4,3 +4,5 @@ numpy
 pytz
 requests
 Flask
+smartapi-python
+pyotp
